@@ -243,7 +243,7 @@ angular.module('ui.ace', [])
           });
 
           ngModel.$render = function () {
-            session.setValue(ngModel.$viewValue);
+            session.doc.setValue(ngModel.$viewValue);
           };
         }
 
