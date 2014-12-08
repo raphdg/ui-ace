@@ -26,6 +26,12 @@ angular.module('ui.ace', []).constant('uiAceConfig', {}).directive('uiAce', [
      * @param {object} opts Options to be set
      */
     var setOptions = function (acee, session, opts) {
+      // ace requires loading
+      if (angular.isDefined(opts.require)) {
+        opts.require.forEach(function (n) {
+          window.ace.require(n);
+        });
+      }
       // Boolean options
       if (angular.isDefined(opts.showGutter)) {
         acee.renderer.setShowGutter(opts.showGutter);
@@ -66,6 +72,26 @@ angular.module('ui.ace', []).constant('uiAceConfig', {}).directive('uiAce', [
       }
       if (angular.isString(opts.mode)) {
         session.setMode('ace/mode/' + opts.mode);
+      }
+      // Advanced options
+      if (angular.isDefined(opts.firstLineNumber)) {
+        if (angular.isNumber(opts.firstLineNumber)) {
+          session.setOption('firstLineNumber', opts.firstLineNumber);
+        } else if (angular.isFunction(opts.firstLineNumber)) {
+          session.setOption('firstLineNumber', opts.firstLineNumber());
+        }
+      }
+      // advanced options
+      if (angular.isDefined(opts.advanced)) {
+        for (var key in opts.advanced) {
+          // create a javascript object with the key and value
+          var obj = {
+              name: key,
+              value: opts.advanced[key]
+            };
+          // try to assign the option to the ace editor
+          acee.setOption(obj.name, obj.value);
+        }
       }
     };
     return {
@@ -177,14 +203,16 @@ angular.module('ui.ace', []).constant('uiAceConfig', {}).directive('uiAce', [
             return value;
           });
           ngModel.$render = function () {
-            session.setValue(ngModel.$viewValue);
+            session.doc.setValue(ngModel.$viewValue);
           };
         }
         // set the options here, even if we try to watch later, if this
         // line is missing things go wrong (and the tests will also fail)
         setOptions(acee, session, opts);
         // Listen for option updates
-        scope.$watch(attrs.uiAce, function () {
+        scope.$watch(attrs.uiAce, function (current, previous) {
+          if (current === previous)
+            return;
           opts = angular.extend({}, options, scope.$eval(attrs.uiAce));
           // unbind old change listener
           session.removeListener('change', onChangeListener);
